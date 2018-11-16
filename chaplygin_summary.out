@@ -1,0 +1,62 @@
+
+ ==============================
+ S N O P T  7.6.0    (Jan 2017)
+ ==============================
+ 
+ SNMEMA EXIT 100 -- finished successfully
+ SNMEMA INFO 104 -- memory requirements estimated
+ 
+ Scale option  0
+ 
+
+ Nonlinear constraints      80     Linear constraints       1
+ Nonlinear variables        99     Linear variables         0
+ Jacobian  variables        99     Objective variables     11
+ Total constraints          81     Total variables         99
+ 
+ Itn      0: Feasible linear rows
+ Itn      0: PP1.  Minimizing  Norm(x-x0)
+
+ Itn      0: PP1.  Norm(x-x0) approximately minimized  (0.00E+00)
+
+ 
+ The user has defined    1451   out of    1451   first  derivatives
+ 
+ Itn      0: Hessian set to a scaled identity matrix
+ Itn     12: Infeasible QP subproblem
+ Itn     12: Elastic Phase 1 -- making non-elastic variables feasible
+ Itn     12: Infeasible subproblem. Elastic mode started with weight =  1.0E+05
+
+ Major Minors     Step   nCon Feasible  Optimal  MeritFunction     nS Penalty
+     0     14               1  5.0E-02  4.6E-02  0.0000000E+00                  r i
+ Itn     14: Hessian set to a scaled identity matrix
+     1      0  5.6E-01      2  2.2E-02  2.0E-02  1.5385873E+03        5.2E+05   rli
+ Itn     14: Elastic weight increased to   1.000E+06
+ Itn     14: Elastic weight increased to   1.000E+08
+ Itn     14: Elastic weight increased to   1.000E+10
+     2      0  1.0E+00      3  1.2E-03 (3.3E-12) 4.1481481E+07        1.9E+05 s   i
+ 
+ SNOPTA EXIT  10 -- the problem appears to be infeasible
+ SNOPTA INFO  13 -- nonlinear infeasibilities minimized
+
+ Problem name
+ No. of iterations                  14   Objective            4.3200000000E-02
+ No. of major iterations             2   Linear    obj. term  0.0000000000E+00
+ Penalty parameter           1.944E+05   Nonlinear obj. term  4.3200000000E-02
+ Elastic weight                1.0E+10   Elastic   objective  4.1481481463E+07
+                                         Elastic infeas       4.1481481420E-03
+ User function calls (total)       103
+ No. of degenerate steps             5   Percentage                      35.71
+ Max x                      95 1.8E+00   Max pi                      7 1.0E+10
+ Max Primal infeas         107 2.1E-03   Max Dual infeas            25 7.2E-07
+ Nonlinear constraint violn    2.1E-03
+ 
+ 
+
+ Solution printed on file   9
+ 
+ Time for MPS input                             0.00 seconds
+ Time for solving problem                       0.70 seconds
+ Time for solution output                       0.00 seconds
+ Time for constraint functions                  0.72 seconds
+ Time for objective function                    0.00 seconds
