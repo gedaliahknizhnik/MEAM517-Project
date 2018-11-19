@@ -18,6 +18,10 @@ Fy    = params.Fy;
 Fxw   = params.Fxw; 
 Fyw   = params.Fyw;
 
+F = -3*sqrt(dx^2+dy^2);
+Fx = F*cos(th);
+Fy = F*sin(th);
+
 ddx = (Fx + Fxw + (Fy*sin(2*th))/2 + (Fyw*sin(2*th))/2 - Fx*sin(th)^2 - Fxw*sin(th)^2 - (dth*dx*m*sin(2*th))/2 - dth*dy*m*sin(th)^2)/m + ((Fyw*a^2*m*sin(2*th))/2 - Fxw*a^2*m*sin(th)^2 + u*a*m*sin(th) - Tresc*a*m*sin(th))/(C*m);
 ddy = (Fy + Fyw - Fy*cos(th)^2 - Fyw*cos(th)^2 + (Fx*sin(2*th))/2 + (Fxw*sin(2*th))/2 + dth*dx*m*cos(th)^2 + (dth*dy*m*sin(2*th))/2)/m - (Fyw*a^2*m*cos(th)^2 - (Fxw*a^2*m*sin(2*th))/2 + u*a*m*cos(th) - Tresc*a*m*cos(th))/(C*m);
 ddth = -(u - Tresc + Fyw*a*cos(th) - Fxw*a*sin(th))/C;

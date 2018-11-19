@@ -19,37 +19,11 @@ function [z,F,INFO] = optimizeChaplygin(x_0, x_f, ind1, ind2, nx, nu, N, dt, par
 
 
 %% Define Constraints
-% Aeq*z = beq
-
-Aeq = zeros(2*nx, N * (nx + nu));
-beq = zeros(2*nx, 1);
 
 % Add constraints to Aeq, beq to enforce 
 % starting at x_0 and ending at x_f
 x_0_inds = 1:nx;
 xf_inds = x_0_inds + (N - 1) * (nx + nu);
-
-% Place identity matrices in the x_0 block and the x_N block of Aeq.
-% A1 = zeros(nx);
-% A2 = zeros(nx);
-% for ii = 1:nx
-%     A1(ii,ii) = ind1(ii);
-%     A2(ii,ii) = ind2(ii);
-% end
-
-% Aeq(x_0_inds,x_0_inds) = A1;
-% Aeq(x_0_inds+nx,xf_inds) = A2;
-
-%Only constrict position
-% f_con = eye(nx);
-% f_con(nx/2+1:end,nx/2+1:end) = zeros(nx/2);
-% Aeq(x_0_inds+nx,xf_inds) = f_con;
-
-    
-% Let the first nx elements of beq be x_0 and the last nx elements be
-% x_f.
-% beq(x_0_inds)    = x_0;
-% beq(x_0_inds+nx) = x_f;
 
 %% Add Constraints on States
 
@@ -81,21 +55,21 @@ end
   
 % Make initial guess for z
 z0 = zeros(N * (nx + nu), 1);
+rng(0,'twister');
 
 for i=1:N
   x_i_inds = (1:nx) + (nx + nu) * (i - 1);
   u_i_inds = (1:nu) + nx * i + nu * (i - 1);
   z0(x_i_inds) = x_0 + ((i-1)/(N-1))*(x_f - x_0); 
-  %z0(u_i_inds) = M;
+  z0(u_i_inds) = (2*10)*rand() - 10;
 end
 
 %% Solve the problem using SNOPT
 
 snscreen on;
 snprint('chaplygin.out');
-snsummary('chaplygin_summary.out')
-
-snset('Verify')
+% snsummary('chaplygin_summary.out')
+% snset('Verify')
 
 [z,zlow,zupp,zmul,zstate, ...
    Flow,Fupp,Fmul,Fstate, ...
@@ -135,33 +109,39 @@ snend;
         % Combine all the gradients into a single vector
         dF = [dGnonZero;s];
     end
-% 
+
     % We also have to set up all of the other variables that SNOPT requires
     function [z,zlow,zupp,zmul,zstate, ...
             Flow,Fupp,Fmul,Fstate, ...
             ObjAdd,ObjRow,A,iAfun,jAvar,iGfun,jGvar,iii,jjj] = setOptData(z0,lb,ub)
 
+        % Linear part of cost function (left undefined)
         A = []; iAfun=[]; jAvar=[];
         
+        % Objective function is in first row of F
         ObjRow = 1;
         ObjAdd = 0;
 
+        % Constraints on the state vector
         z      = z0;
         zlow   = lb;
         zupp   = ub;
         zmul   = []; zstate = [];
 
-        [g, dG] = trajectory_cost(z0, N, nx, nu, dt);
+        % Get sparsity structure 
         [iii,jjj] = genSparseStructure(nx,nu,N);
         
+        % Constraint structure
         length = 1 + nx*(N-1);
 
+        % Set boundary values on the constraints
         Flow    = zeros(length,1);
-        Flow(1) = -Inf;
+        Flow(1) = -Inf;                 % Cost is free constraint
         Fupp    = zeros(size(Flow));
-        Fupp(1) =  Inf; 
+        Fupp(1) =  Inf;                 % Cost is free constraint
         Fmul   = []; Fstate = [];
                 
+        % Sparsity structure
         iGfun = zeros(N+size(iii,1),1);
         jGvar = zeros(size(iGfun,1),1);
         
@@ -176,7 +156,6 @@ snend;
         % Encode the non-zero elements of the gradient of the constraints
         iGfun(N+1:end) = iii+1;
         jGvar(N+1:end) = jjj;
-
     end
 
 end

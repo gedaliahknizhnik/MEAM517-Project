@@ -9,21 +9,21 @@ close all
 
 nx = 8;
 nu = 1;
-N = 11;
+N = 31;
 T = 30;
 dt = T/(N-1);
 
 x_0 = [0,0,0,0,0,0,0,0];
-x_f = [0,0,1,0,0,0,0,0];
+x_f = [10,0,0,0,0,0,0,0];
 
 ind1 = [1,1,1,1,1,1,1,1];
-ind2 = [1,1,1,0,1,1,1,1];
+ind2 = [1,1,1,0,0,0,1,1];
 
 % Setup simulation parameters.
 params.m     = 10;
-params.B     = 1e1;
-params.C     = 1e1;
-params.a     = 0;
+params.B     = 1e0;
+params.C     = 1e0;
+params.a     = 0.5;
 params.Tresb = 0;
 params.Tresc = 0;
 params.Fx    = 0;
