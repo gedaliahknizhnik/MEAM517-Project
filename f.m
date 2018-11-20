@@ -5,26 +5,14 @@ x = w(1);   y = w(2);  th = w(3);  ph = w(4);
 dx = w(5); dy = w(6); dth = w(7); dph = w(8);
 
 % Parameters
-m = params.m;
-B = params.B;
-C = params.C;
-a = params.a;
+m  = params.m;
+B  = params.B;
+C  = params.C;
+a  = params.a;
+k1 = params.k1;
 
 % Additional force variables (currently all zero except Tapp=u)
-Tresb = params.Tresb;
-Tresc = params.Tresc;
-Fx    = params.Fx; 
-Fy    = params.Fy; 
-Fxw   = params.Fxw; 
-Fyw   = params.Fyw;
-k1    = params.k1;
-
- F = -0.2*sqrt(dx^2+dy^2);
- Fx = F*cos(th);
- Fy = F*sin(th);
- Tresb = -0.5*dth;
- Tresc = -0.5*dth;
- 
+[Fx,Fy,Fxw,Fyw,Tresc,Tresb] = forces(w,u);
 
 % Regular
 % ddx = (Fx + Fxw + (Fy*sin(2*th))/2 + (Fyw*sin(2*th))/2 - Fx*sin(th)^2 - Fxw*sin(th)^2 - (dth*dx*m*sin(2*th))/2 - dth*dy*m*sin(th)^2)/m + ((Fyw*a^2*m*sin(2*th))/2 - Fxw*a^2*m*sin(th)^2 + u*a*m*sin(th) - Tresc*a*m*sin(th))/(C*m);

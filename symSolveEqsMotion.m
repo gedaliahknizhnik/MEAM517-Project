@@ -24,4 +24,13 @@ for i=1:numel(fields)
   solutions.(fields{i})
 end
 
+%% LQR
+
+f1 = [dx;dy;dth;dph;solutions.ddx;solutions.ddy;solutions.ddth;solutions.ddph]
+
+dfdx = jacobian(f1,[x,y,th,ph,dx,dy,dth,dph])
+
+dfdu = jacobian(f1,[Tapp])
+
+
 %[A,b] = equationsToMatrix(eqns,vars)

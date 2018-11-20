@@ -75,6 +75,15 @@ W = waitbar(0,'Solving ODE'); params.waitBar = W;
 [t_cont,z_cont] = ode45(@chaplyginSleigh,[0,T],x_0,[],params);
 close(W)
 
+%% Polynomial fit of reference trajectory:
+
+nFit = 3;
+zFit = polyfit(t, z_states, nFit);
+% xFit = polyfit(tSol,xSol,nFit);
+% yFit = polyfit(tSol,ySol,nFit);
+% uFit = polyfit(tSol,uSol,nFit);
+
+
 %% Plot the outputs
 
 
@@ -123,7 +132,7 @@ legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
 %%
 
 Q = 2*eye(nx);
-R = 5*eye(nu);
+R = eye(nu);
 F = zeros(size(Q));
 tol = 1e-6;  % Accuracy of ricatti propagation
 
