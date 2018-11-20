@@ -90,7 +90,7 @@ snend;
     
     function [F,dF] = usrfun(z) 
         [g, dG] = trajectory_cost(z, N, nx, nu, dt);
-        [c,ceq,dC,dCeq] = all_constraints(z, N, nx, nu, dt, params);       
+        [ceq,dCeq] = all_constraints(z, N, nx, nu, dt, params);       
         F = [g; ceq];
     
         % Add the non-zero elements of the cost gradient.

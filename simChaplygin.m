@@ -122,8 +122,8 @@ legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
 
 %%
 
-Q = 2*eye(nx);
-R = 5*eye(nu);
+Q = 0.1*eye(nx);
+R = 100*eye(nu);
 F = zeros(size(Q));
 tol = 1e-6;  % Accuracy of ricatti propagation
 
@@ -139,6 +139,15 @@ end
 
 [t_lqr,z_lqr] = ode45(@dynamics,[0,T],x_0,[],ts,Ks,z_states,z_controls,params);
 
+u_lqr = zeros(size(t_lqr));
+
+for ii = 1:size(t_lqr)
+    u_star = interp1(ts,z_controls,t_lqr(ii));
+    w_star = interp1(ts,z_states,t_lqr(ii))';
+    KNow = interp1(ts,Ks,t_lqr(ii));
+    
+    u_lqr(ii) = u_star + KNow*(w_star-z_lqr(ii,:)');
+end
 
 %% Plot the outputs
 
@@ -175,6 +184,15 @@ legend({'$\dot{x}_{SNOPT}$','$\dot{x}_{LQR}$','$\dot{y}_{SNOPT}$',...
             '$\dot{y}_{LQR}$','$\dot{\theta}_{SNOPT}$',...
             '$\dot{\theta}_{LQR}$','$\dot{\phi}_{SNOPT}$',...
             '$\dot{\phi}_{LQR}$'},'Interpreter','Latex')
+        
+figure, hold on
+plot(t,z_controls,'--','Linewidth',2); plot(t_lqr,u_lqr,'Linewidth',2);
+title('Control','Interpreter','Latex')
+xlabel('$t$ (s)','Interpreter','Latex')
+ylabel('Value (Nm)','Interpreter','Latex')
+legend({'$\tau_{SNOPT}$','$\tau_{LQR}$'},'Interpreter','Latex')
+
+
 
 
 function [dw] = dynamics(t, w, ts, Ks, z_states, z_controls, params)

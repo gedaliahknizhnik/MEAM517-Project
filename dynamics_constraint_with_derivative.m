@@ -1,7 +1,7 @@
 function [h_i,dH_i] = dynamics_constraint_with_derivative(x_i, u_i, x_ip1, u_ip1, dt, params)
-%DYNAMICS_CONSTRAINT_WITH_DERIVATIVE(x_i, u_i, x_ip1, u_ip1, dt) returns
-%and computes the gradient of the vector constraint asssociated with
-%dynamics_constraint(x_i, u_i, x_ip1, u_ip1, dt).
+% DYNAMICS_CONSTRAINT_WITH_DERIVATIVE(x_i, u_i, x_ip1, u_ip1, dt) returns
+%   and computes the gradient of the vector constraint asssociated with
+%   dynamics_constraint(x_i, u_i, x_ip1, u_ip1, dt).
 %
 %   @param x_i: x_i, the state at the start of the interval.
 %   @param u_i: u_i, the input at the start of the interval.
