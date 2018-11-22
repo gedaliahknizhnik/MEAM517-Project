@@ -61,6 +61,8 @@ for ii=1:size(t)
     t(ii) = (ii-1)*dt;
 end
 
+max(F)
+
 %% Simulate ODE with these inputs 
 
 Tapp = zeros(size(z_controls,1),2);
@@ -120,6 +122,7 @@ xlabel('$t$ (s)','Interpreter','Latex')
 ylabel('Value (Nm)','Interpreter','Latex')
 legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
 
+return
 %%
 
 Q = 0.1*eye(nx);

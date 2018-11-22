@@ -12,7 +12,7 @@ a  = params.a;
 k1 = params.k1;
 
 % Additional force variables (currently all zero except Tapp=u)
-[Fx,Fy,Fxw,Fyw,Tresc,Tresb] = forces(w,u);
+[Fx,Fy,Fxw,Fyw,Tresc,Tresb] = forces(w,u,params);
 
 % Regular
 % ddx = (Fx + Fxw + (Fy*sin(2*th))/2 + (Fyw*sin(2*th))/2 - Fx*sin(th)^2 - Fxw*sin(th)^2 - (dth*dx*m*sin(2*th))/2 - dth*dy*m*sin(th)^2)/m + ((Fyw*a^2*m*sin(2*th))/2 - Fxw*a^2*m*sin(th)^2 + u*a*m*sin(th) - Tresc*a*m*sin(th))/(C*m);

@@ -56,12 +56,13 @@ end
 % Make initial guess for z
 z0 = zeros(N * (nx + nu), 1);
 rng(0,'twister');
+randMax = 10;
 
 for i=1:N
   x_i_inds = (1:nx) + (nx + nu) * (i - 1);
   u_i_inds = (1:nu) + nx * i + nu * (i - 1);
   z0(x_i_inds) = x_0 + ((i-1)/(N-1))*(x_f - x_0); 
-  z0(u_i_inds) = (2*10)*rand() - 10;
+  z0(u_i_inds) = (2*randMax)*rand() - randMax;
 end
 
 %% Solve the problem using SNOPT
