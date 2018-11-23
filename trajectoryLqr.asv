@@ -70,7 +70,16 @@ end
 end
 
 function dz = rhs(t,td,xd,ud,z,linSys,Q,R,nState,polys,params)
-    [xdNow,udNow] = getDes(t,td,xd,ud,polys);
+    for jj=1:size(td)
+        if t < td(jj)            
+            break
+        end
+    end
+
+%     xdNow = interp1(td,xd,t);
+    udNow = interp1(td,ud,t);
+  
+    
 
     P = reshape(z,nState,nState);
     [A,B] = linSys(xdNow,udNow,params);

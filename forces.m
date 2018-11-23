@@ -12,10 +12,10 @@ function [Fx,Fy,Fxw,Fyw,Tresc,Tresb] = forces(w,u,params)
     Fy = F*sin(th);
     
     % Cross-wind
-    Fy = -0.1;
-    Fx = 0.1;
+%     Fy = -0.1;
+%     Fx = 0.1;
 
     Tresb = 0;%-0.5*dph;   
-    Tresc = -0.5*dth;
+    Tresc = 0;%-0.5*dth;
 
 end

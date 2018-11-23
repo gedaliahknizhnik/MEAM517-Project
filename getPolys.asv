@@ -1,0 +1,11 @@
+function [polys] = getPolys(states,controls,nx,dt,params)
+
+    polys = zeros(size(states,1),4,nx);
+
+    for ii=1:size(states,1)
+        % Create the polynomials (in descending order of power)
+        polys(ii,4,:) = states(ii,:);
+        polys(ii,3,:) = f(states(ii,:),controls(ii,:),params);
+        polys(ii,2,:) = 3/dt^2*(states(ii,:)
+    end
+end
