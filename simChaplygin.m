@@ -6,56 +6,72 @@
 
 close all
 
-nx = 8;
+nw = 8;
 nu = 1;
 N = 31;
 T = 30;
 dt = T/(N-1);
 
+% Problem conditions
+
 w_0 = [0,0,0,0,0,0,0,0];
 w_f = [5,0,0,0,0,0,0,0];
 
-ind1 = [1,1,1,1,1,1,1,1];
-ind2 = [1,1,1,0,0,0,1,1];
+ind0 = [1,1,1,1,1,1,1,1];
+indf = [1,1,1,0,0,0,1,1];
 
 M = Inf;
 
+% LQR Costs
+Q = 10*eye(nw);
+R = 0.1*eye(nu);
+
+% Final Cost-to-Go (must be non-zero b/c current method inverts matrix).
+Lf = 0.01*eye(size(Q));
+Lf = reshape(Lf,nw^2,1);
+
 % Setup simulation parameters.
-params.nx      = nx;
+params.nw      = nw;
 params.nu      = nu;
+params.N       = N;
+params.maxTime = T;
+params.dt      = dt;
+params.w_0     = w_0;
+params.w_f     = w_f;
+params.ind0    = ind0;
+params.indf    = indf;
+params.M       = M;
+
 params.m       = 2;
 params.B       = 1e0;
 params.C       = 1e0;
 params.a       = 0.05;
-params.Tresb   = 0;
-params.Tresc   = 0;
-params.Fx      = 0;
-params.Fy      = 0;
-params.Fxw     = 0;
-params.Fyw     = 0;
-params.maxTime = T;
 params.k1      = 0.0;
+
+params.Q       = Q;
+params.R       = R;
+params.Lf      = Lf;
 
 %% Solve the Optimal Control Problem
 % Use SNOPT to calculate the optimal trajectory.
 
 tic
-[z,F,INFO] = optimizeChaplygin(w_0,w_f,ind1,ind2,M,nx,nu,N,dt,params);
+[z,F,INFO] = optimizeChaplygin(params);
 params.tSNOPT = toc;
 
 %% Process Output
 % Prepare data for graphing and further use.
-num = size(z,1)/(nx+nu);
+num = size(z,1)/(nw+nu);
 
-z_SNOPT = zeros(num,nx);
+z_SNOPT = zeros(num,nw);
 u_SNOPT = zeros(num,nu);
 
-nx_indices = unwrap(1:nx);
-nu_indices = nx + unwrap(1:nu);
+nx_indices = unwrap(1:nw);
+nu_indices = nw + unwrap(1:nu);
 
 for ii = 1:num
-    x_indices = (ii-1)*(nx+nu) + nx_indices;
-    u_indices = (ii-1)*(nx+nu) + nu_indices;
+    x_indices = (ii-1)*(nw+nu) + nx_indices;
+    u_indices = (ii-1)*(nw+nu) + nu_indices;
     z_SNOPT(ii,:)   = z(x_indices)';
     u_SNOPT(ii,:) = z(u_indices)';
 end
@@ -67,7 +83,7 @@ end
 
 % Find polynomial trajectories output by SNOPT (currently unused because
 % gives bad outputs for LQR - maybe b/c there's an error in there).
-polys = getPolys(z_SNOPT,u_SNOPT,nx,dt,params);
+polys = getPolys(z_SNOPT,u_SNOPT,nw,dt,params);
 
 % max(F)
 
@@ -98,21 +114,13 @@ params.Tapp = Tapp;
 % Idea is to minimize trajectory deviation due to dynamic infeasibilities,
 % even if it means deviating in terms of the control.
 
-% LQR Costs
-Q = 10*eye(params.nx);
-R = 0.1*eye(params.nu);
-
-% Final Cost-to-Go (must be non-zero b/c current method inverts matrix).
-F = 0.01*eye(size(Q));
-F = reshape(F,params.nx^2,1);
-
 % Solve Riccati equation by integrating backwards in time 
 %   (Note that reshaping occurs inside the function since ODE45 solves 
 %   vectors, not matrices).
-Lfun = @(t,L) Ldot(t, L, Q, R, t_SNOPT, z_SNOPT, u_SNOPT, polys, params);
+Lfun = @(t,L) Ldot(t, L, t_SNOPT, z_SNOPT, u_SNOPT, polys, params);
 % W = waitbar(0,'Solving Riccati equation ODE'); params.waitBar = W;
     tic
-Lsol = ode45(Lfun, [params.maxTime,0], F);
+Lsol = ode45(Lfun, [params.maxTime,0], Lf);
     params.tRiccati = toc;
 %close(W)
 
@@ -226,6 +234,9 @@ legend({'$\dot{\theta}_{SNOPT}$','$\dot{\theta}_{OL}$','$\dot{\theta}_{LQR}$', .
         '$\dot{\phi}_{SNOPT}$','$\dot{\phi}_{OL}$','$\dot{\phi}_{LQR}$'},...
             'Interpreter','Latex','Location','northeast');
 
+  
+        
+% Function for applying LQR control effort to system dynamics.        
 function [dw] = dynamics(t, w, ts, Ls, z_states, z_controls, R, polys, params)
 
     [~,u] = findK(t, w, ts, Ls, z_states, z_controls, R, polys, params);

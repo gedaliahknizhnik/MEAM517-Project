@@ -4,7 +4,7 @@ function [K,u] = findK(t, w, ts, Ls, z_states, z_controls, R, polys, params)
 
     [A,B] = linSys(w_star,u_star,params);
  
-    L = reshape(deval(Ls,t),params.nx,params.nx);
+    L = reshape(deval(Ls,t),params.nw,params.nw);
     S = L*L';
     K = R^(-1)*B'*S;
     

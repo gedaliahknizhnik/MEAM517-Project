@@ -1,4 +1,4 @@
-function [z,F,INFO] = optimizeChaplygin(params)
+function [z,F,INFO] = optimizeChaplygin(w_0, w_f, ind1, ind2, params)
 % OPTIMIZECHAPLYGIN(nx, nu, N, dt, params) uses SNOPT to solve the direct
 %       collocation problem concerning the Chaplygin Beanie. Modified from
 %       the HW 5 code creat by Mathew Halm.
@@ -18,16 +18,13 @@ function [z,F,INFO] = optimizeChaplygin(params)
 %% Define problem settings:
 %
 % Pull values from params
+nw = params.nw;
+nu = params.nu;
+w_0 = params.w_0;
 
-nw   = params.nw;
-nu   = params.nu;
-w_0  = params.w_0;
-w_f  = params.w_f;
-ind0 = params.ind0;
-indf = params.indf;
-M    = params.M;
-N    = params.N;
-dt   = params.dt;
+M  = params.M;
+N  = params.N;
+dt = params.dt;
 
 %% Define Constraints
 
@@ -45,12 +42,12 @@ ub =  inf(N * (nw + nu),1);
 
 % Add constraint on initial position
 for i=1:nw
-    if (ind0(i) == 1)
+    if (ind1(i) == 1)
         lb(i) = w_0(i);
         ub(i) = w_0(i);
     end
     
-    if (indf(i) == 1)
+    if (ind2(i) == 1)
         index = size(lb,1) - (nw+nu);
         lb(index + i) = w_f(i);
         ub(index + i) = w_f(i);

@@ -11,10 +11,12 @@ function [dLdt] = Ldot(t, L, td, xd, ud, polys, params)
 % modify this line to calculate \dot L(t).
 %dLdt = zeros(6,6);
 
+co
+
 Q = params.Q;
 R = params.R;
 
-L = reshape(L, params.nw, params.nw);
+L = reshape(L,params.nw,params.nw);
 
 
 % xd = x_d(t);
@@ -26,7 +28,7 @@ L = reshape(L, params.nw, params.nw);
 
 dLdt = -1/2*Q*(L^(-1))' - A'*L + 1/2*L*L'*B*R^(-1)*B'*L;
 
-dLdt = reshape(dLdt,params.nw^2,1);
+dLdt = reshape(dLdt,params.nx^2,1);
 
 frac = (params.maxTime - t)/params.maxTime;
 %params

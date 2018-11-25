@@ -1,7 +1,7 @@
-function [A,B] = linSys(xd, ud, params)
+function [A,B] = linSys(wd, ud, params)
 
- x = xd(1);  y = xd(2);  th = xd(3);  ph = xd(4);
-dx = xd(5); dy = xd(6); dth = xd(7); dph = xd(8);
+ x = wd(1);  y = wd(2);  th = wd(3);  ph = wd(4);
+dx = wd(5); dy = wd(6); dth = wd(7); dph = wd(8);
 
 % Parameters
 m = params.m;
@@ -10,19 +10,8 @@ C = params.C;
 a = params.a;
 
 % Additional force variables (currently all zero except Tapp=u)
-Tresb = params.Tresb;
-Tresc = params.Tresc;
-Fx    = params.Fx; 
-Fy    = params.Fy; 
-Fxw   = params.Fxw; 
-Fyw   = params.Fyw;
+[Fx,Fy,Fxw,Fyw,Tresc,Tresb] = forces(wd,ud,params);
 k1    = params.k1;
-
- F = -0.2*sqrt(dx^2+dy^2);
- Fx = F*cos(th);
- Fy = F*sin(th);
- Tresb = -0.5*dth;
- Tresc = -0.5*dth;
 
 %dfdx
 A = [ 0, 0, 0, 0, 1, 0, 0, 0;
@@ -44,4 +33,5 @@ B = [ 0;
      -(a*cos(th))/C;
      -1/C;
       1/B + 1/C];
+  
 end
