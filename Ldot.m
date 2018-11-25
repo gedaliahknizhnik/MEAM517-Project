@@ -1,4 +1,4 @@
-function [dLdt] = Ldot(t, L, Q, R, params)
+function [dLdt] = Ldot(t, L, Q, R, td, xd, ud, polys, params)
 % LDOT(t, L, Q, R, constants) calculates the time derivative of L(t).
 %    Input parameters:
 %    t - current time
@@ -11,22 +11,18 @@ function [dLdt] = Ldot(t, L, Q, R, params)
 % modify this line to calculate \dot L(t).
 %dLdt = zeros(6,6);
 
-xd = x_d(t);
-ud = u_d(t);
+L = reshape(L,params.nx,params.nx);
 
-A1 = [0,0, -(1/constants.m)*cos(xd(3))*(ud(1)+ud(2));
-    0, 0, -(1/constants.m)*sin(xd(3))*(ud(1)+ud(2));
-    0, 0, 0];
 
-A = [zeros(3,3), eye(3);
-     A1, zeros(3,3)];
- 
-B1 = [-(1/constants.m)*sin(xd(3)), -(1/constants.m)*sin(xd(3));
-       (1/constants.m)*cos(xd(3)),  (1/constants.m)*cos(xd(3));
-       constants.a/constants.I, -constants.a/constants.I];
-   
-B = [zeros(3,2);B1];
+% xd = x_d(t);
+% ud = u_d(t);
 
-dLdt = -1/2*Q*(L^(-1))' - A'*L + 1/2*L*L'*B*R^(-1)*B'*L;  
+[xdNow,udNow] = getDes(t,td,xd,ud,polys);
+
+[A,B] = linSys(xdNow,udNow,params);
+
+dLdt = -1/2*Q*(L^(-1))' - A'*L + 1/2*L*L'*B*R^(-1)*B'*L;
+
+dLdt = reshape(dLdt,params.nx^2,1);
 
 end

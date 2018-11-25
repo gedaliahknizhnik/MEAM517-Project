@@ -34,6 +34,8 @@ params.Fxw   = 0;
 params.Fyw   = 0;
 params.maxTime = T;
 params.k1 = 0.0;
+params.nx = nx;
+params.nu = nu;
 
 %% Solve the Optimal Control Problem
 
@@ -135,6 +137,19 @@ tol = 1e-6;  % Accuracy of ricatti propagation
 polys = getPolys(z_states,z_controls,nx,dt,params);
 
 Soln = trajectoryLqr(t,z_states,z_controls,@linSys,Q,R,F,tol,polys,params);
+
+
+ts = t;
+
+Lf = reshape(0.01*eye(nx),nx^2,1);
+myfun = @(t,L) Ldot(t, L, Q, R, ts, z_states, z_controls, polys, params);
+[ts1,Ls1] = ode45(myfun,[T,0], Lf);
+
+size(ts1)
+size(Ls1)
+
+return
+
 
 ts = zeros(size(Soln,2),1);
 Ks = zeros(size(Soln,2),nx);

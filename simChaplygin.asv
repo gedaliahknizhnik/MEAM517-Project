@@ -125,14 +125,23 @@ legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
 %% LQR
 
 
-Q = 0.1*eye(nx);
+Q = 1*eye(nx);
+Q(nx/2+1:end,nx/2+1:end) = 0.1*eye(nx/2);
+
 R = 100*eye(nu);
 F = zeros(size(Q));
 tol = 1e-6;  % Accuracy of ricatti propagation
 
 polys = getPolys(z_states,z_controls,nx,dt,params);
 
-Soln = trajectoryLqr(t,z_states,z_controls,@linSys,Q,R,F,tol,params);
+Soln = trajectoryLqr(t,z_states,z_controls,@linSys,Q,R,F,tol,polys,params);
+
+Lf = zeros(nx,1);
+[ts1,Ls1] = ode45(Ldot,[T,0], Lf, Q, R, t, z_states, z_controls, polys, params);
+
+
+return
+
 
 ts = zeros(size(Soln,2),1);
 Ks = zeros(size(Soln,2),nx);
@@ -142,7 +151,9 @@ for ii=1:size(Soln,2)
     Ks(ii,:) = Soln(ii).K;
 end
 
-[t_lqr,z_lqr] = ode45(@dynamics,[0,T],x_0,[],ts,Ks,z_states,z_controls,params);
+W = waitbar(0,'Solving ODE with LQR'); params.waitBar = W;
+[t_lqr,z_lqr] = ode45(@dynamics,[0,T],x_0,[],ts,Ks,z_states,z_controls, polys, params);
+close(W)
 
 u_lqr = zeros(size(t_lqr));
 
@@ -200,12 +211,19 @@ legend({'$\tau_{SNOPT}$','$\tau_{LQR}$'},'Interpreter','Latex')
 
 
 
-function [dw] = dynamics(t, w, ts, Ks, z_states, z_controls, params)
-    u_star = interp1(ts,z_controls,t);
-    w_star = interp1(ts,z_states,t)';
+function [dw] = dynamics(t, w, ts, Ks, z_states, z_controls, polys, params)
+    
+%    [w_star,u_star] = getDes(t,ts,z_states,z_controls,polys);
+
+     u_star = interp1(ts,z_controls,t);
+     w_star = interp1(ts,z_states,t)';
+
     KNow = interp1(ts,Ks,t);
     
     u = u_star + KNow*(w_star-w);
     dw = f(w,u,params);
+    
+    waitbar(t/params.maxTime,params.waitBar,'Solving ODE with LQR')
+
 end
  

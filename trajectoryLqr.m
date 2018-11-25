@@ -1,4 +1,4 @@
-function Soln = trajectoryLqr(t,xd,ud,linSys,Q,R,F,tol,polys,params)
+function Soln = trajectoryLqr(t,xd,ud,linSys,Q,R,F,tol,polys,params)    
 % Soln = trajectoryLqr(t,linSys,Q,R,F,tol)
 %
 % This function is used to solve the finite-horizon continuout-time linear

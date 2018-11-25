@@ -830,7 +830,7 @@
      279  x    279    BS         0.02690         0.02690           None            None         -0.00116    520
  
  Time for MPS input                             0.00 seconds
- Time for solving problem                       3.42 seconds
+ Time for solving problem                       5.81 seconds
  Time for solution output                       0.00 seconds
- Time for constraint functions                  3.00 seconds
+ Time for constraint functions                  5.69 seconds
  Time for objective function                    0.00 seconds
