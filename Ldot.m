@@ -25,4 +25,11 @@ dLdt = -1/2*Q*(L^(-1))' - A'*L + 1/2*L*L'*B*R^(-1)*B'*L;
 
 dLdt = reshape(dLdt,params.nx^2,1);
 
+frac = (params.maxTime - t)/params.maxTime;
+%params
+%waitbar(frac,params.waitBar,'Solving Riccati equation ODE')
+%waitbar(t/params.maxTime,params.waitBar,'Solving Riccati equation ODE')
+
+
+
 end

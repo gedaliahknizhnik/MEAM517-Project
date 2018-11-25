@@ -4,7 +4,6 @@
 % it using SNOPT. It then simulates the output using the exact equations of
 % motion and plots the comparison.
 
-
 close all
 
 nx = 8;
@@ -13,8 +12,8 @@ N = 31;
 T = 30;
 dt = T/(N-1);
 
-x_0 = [0,0,0,0,0,0,0,0];
-x_f = [5,0,0,0,0,0,0,0];
+w_0 = [0,0,0,0,0,0,0,0];
+w_f = [5,0,0,0,0,0,0,0];
 
 ind1 = [1,1,1,1,1,1,1,1];
 ind2 = [1,1,1,0,0,0,1,1];
@@ -22,31 +21,34 @@ ind2 = [1,1,1,0,0,0,1,1];
 M = Inf;
 
 % Setup simulation parameters.
-params.m     = 2;
-params.B     = 1e0;
-params.C     = 1e0;
-params.a     = 0.05;
-params.Tresb = 0;
-params.Tresc = 0;
-params.Fx    = 0;
-params.Fy    = 0;
-params.Fxw   = 0;
-params.Fyw   = 0;
+params.nx      = nx;
+params.nu      = nu;
+params.m       = 2;
+params.B       = 1e0;
+params.C       = 1e0;
+params.a       = 0.05;
+params.Tresb   = 0;
+params.Tresc   = 0;
+params.Fx      = 0;
+params.Fy      = 0;
+params.Fxw     = 0;
+params.Fyw     = 0;
 params.maxTime = T;
-params.k1 = 0.0;
-params.nx = nx;
-params.nu = nu;
+params.k1      = 0.0;
 
 %% Solve the Optimal Control Problem
+% Use SNOPT to calculate the optimal trajectory.
 
 tic
-[z,F,INFO] = optimizeChaplygin(x_0,x_f,ind1,ind2,M,nx,nu,N,dt,params);
-toc
+[z,F,INFO] = optimizeChaplygin(w_0,w_f,ind1,ind2,M,nx,nu,N,dt,params);
+params.tSNOPT = toc;
 
+%% Process Output
+% Prepare data for graphing and further use.
 num = size(z,1)/(nx+nu);
 
-z_states = zeros(num,nx);
-z_controls = zeros(num,nu);
+z_SNOPT = zeros(num,nx);
+u_SNOPT = zeros(num,nu);
 
 nx_indices = unwrap(1:nx);
 nu_indices = nx + unwrap(1:nu);
@@ -54,184 +56,182 @@ nu_indices = nx + unwrap(1:nu);
 for ii = 1:num
     x_indices = (ii-1)*(nx+nu) + nx_indices;
     u_indices = (ii-1)*(nx+nu) + nu_indices;
-    z_states(ii,:)   = z(x_indices)';
-    z_controls(ii,:) = z(u_indices)';
+    z_SNOPT(ii,:)   = z(x_indices)';
+    u_SNOPT(ii,:) = z(u_indices)';
 end
 
-t = zeros(size(z_states,1),1);
-for ii=1:size(t)
-    t(ii) = (ii-1)*dt;
+t_SNOPT = zeros(size(z_SNOPT,1),1);
+for ii=1:size(t_SNOPT)
+    t_SNOPT(ii) = (ii-1)*dt;
 end
 
-max(F)
+% Find polynomial trajectories output by SNOPT (currently unused because
+% gives bad outputs for LQR - maybe b/c there's an error in there).
+polys = getPolys(z_SNOPT,u_SNOPT,nx,dt,params);
+
+% max(F)
 
 %% Simulate ODE with these inputs 
+% No control applied at this point - differences in trajectory between this
+% and the optimal trajectory are assumed to be a combination of:
+% # Numerical integration errors
+% # Dynamic infeasibilities allowed by SNOPT but rejected by the ODE.
 
-Tapp = zeros(size(z_controls,1),2);
-
+% Calculate the torques in a way the ODE will accept (for linear
+% interpolation).
+Tapp = zeros(size(u_SNOPT,1),2);
 for ii = 1:size(Tapp,1)
-    Tapp(ii,:) = [(ii-1)*dt, z_controls(ii)];
+    Tapp(ii,:) = [(ii-1)*dt, u_SNOPT(ii)];
 end
 
+% Store the torques for passing to the ODE solver.
 params.Tapp = Tapp;
 
-W = waitbar(0,'Solving ODE'); params.waitBar = W;
-[t_cont,z_cont] = ode45(@chaplyginSleigh,[0,T],x_0,[],params);
-close(W)
+% Solve the ODE
+% W = waitbar(0,'Solving ODE'); params.waitBar = W;
+    tic
+[t_OL,z_OL] = ode45(@chaplyginSleigh,[0,T],w_0,[],params);
+    params.tODE = toc;
 
 
-%% Plot the outputs
+%% Find an LQR controller for this optimal trajectory
+% Idea is to minimize trajectory deviation due to dynamic infeasibilities,
+% even if it means deviating in terms of the control.
+
+% LQR Costs
+Q = 10*eye(params.nx);
+R = 0.1*eye(params.nu);
+
+% Final Cost-to-Go (must be non-zero b/c current method inverts matrix).
+F = 0.01*eye(size(Q));
+F = reshape(F,params.nx^2,1);
+
+% Solve Riccati equation by integrating backwards in time 
+%   (Note that reshaping occurs inside the function since ODE45 solves 
+%   vectors, not matrices).
+Lfun = @(t,L) Ldot(t, L, Q, R, t_SNOPT, z_SNOPT, u_SNOPT, polys, params);
+% W = waitbar(0,'Solving Riccati equation ODE'); params.waitBar = W;
+    tic
+Lsol = ode45(Lfun, [params.maxTime,0], F);
+    params.tRiccati = toc;
+%close(W)
+
+% Solve the dynamics with the LQR controller included (should see better
+% performance than simply using the controller from SNOPT).
+LQRfun = @(t,w) dynamics(t,w, t_SNOPT, Lsol, z_SNOPT, u_SNOPT, R, polys, params);
+    tic
+[t_LQR,z_LQR] = ode45(LQRfun,[0,T],w_0);
+    params.tLQR = toc;
+
+% Find the controls at each step 
+u_LQR = zeros(size(t_LQR));
+
+for ii = 1:size(t_LQR)
+    [~,u] = findK(t_LQR(ii), z_LQR(ii,:)', t_SNOPT, Lsol, z_SNOPT, u_SNOPT, R, polys, params);
+    u_LQR(ii) = u;
+end
+
+%% Print Times output
+% 
+
+fprintf('Found the optimal trajectory in                      %f seconds.\n',params.tSNOPT);
+fprintf('Solved the ODE using optimal open-loop control in    %f seconds.\n',params.tODE);
+fprintf('Solved the Riccati ODE to find the LQR controller in %f seconds.\n',params.tRiccati');
+fprintf('Solved the ODE using LQR closed-loop control in      %f seconds.\n',params.tLQR);
+
+
+%% Plot the outputs for SNOPT and the plain ODE solution
+% Still no control applied at this point.
 
 close all
+
+% Plot trajectory
 figure, hold on
-plot(z_states(:,1),z_states(:,2),'--','Linewidth',2)
-plot(z_cont(:,1),z_cont(:,2),'Linewidth',2)
+plot(z_SNOPT(:,1),z_SNOPT(:,2),'Linewidth',2)
+    plot(z_OL(:,1),z_OL(:,2),'--','Linewidth',2)
+        plot(z_LQR(:,1),z_LQR(:,2),':','Linewidth',2)
 title('Trajectory','Interpreter','Latex')
 xlabel('$x$ (m)','Interpreter','Latex')
 ylabel('$y$ (m)','Interpreter','Latex')
-legend({'SNOPT','ODE45'},'Interpreter','Latex')
+legend({'SNOPT','OL','LQR'},'Interpreter','Latex')
 axis equal
 
+% Plot control effort
 figure, hold on
-plot(t,z_states(:,1),'--','Linewidth',2);  plot(t_cont, z_cont(:,1),'Linewidth',2);
-plot(t,z_states(:,2),'--','Linewidth',2);  plot(t_cont, z_cont(:,2),'Linewidth',2);
-plot(t,z_states(:,3),'--','Linewidth',2);  plot(t_cont, z_cont(:,3),'Linewidth',2); 
-plot(t,z_states(:,4),'--','Linewidth',2);  plot(t_cont, z_cont(:,4),'Linewidth',2);
-title('Positions','Interpreter','Latex')
-xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value ($m$,$rad$)','Interpreter','Latex')
-legend({'$x_{SNOPT}$','$x_{ODE45}$','$y_{SNOPT}$','$y_{ODE45}$',...
-            '$\theta_{SNOPT}$','$\theta_{ODE45}$','$\phi_{SNOPT}$',...
-            '$\phi_{ODE45}$'},'Interpreter','Latex')
-
-figure, hold on
-plot(t,z_states(:,5),'--','Linewidth',2);  plot(t_cont, z_cont(:,5),'Linewidth',2);
-plot(t,z_states(:,6),'--','Linewidth',2);  plot(t_cont, z_cont(:,6),'Linewidth',2);
-plot(t,z_states(:,7),'--','Linewidth',2);  plot(t_cont, z_cont(:,7),'Linewidth',2);
-plot(t,z_states(:,8),'--','Linewidth',2);  plot(t_cont, z_cont(:,8),'Linewidth',2);
-title('Velocities','Interpreter','Latex')
-xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value ($\frac{m}{s}$,$\frac{rad}{s}$)','Interpreter','Latex')
-legend({'$\dot{x}_{SNOPT}$','$\dot{x}_{ODE45}$','$\dot{y}_{SNOPT}$',...
-            '$\dot{y}_{ODE45}$','$\dot{\theta}_{SNOPT}$',...
-            '$\dot{\theta}_{ODE45}$','$\dot{\phi}_{SNOPT}$',...
-            '$\dot{\phi}_{ODE45}$'},'Interpreter','Latex')
-
-figure, hold on
-plot(t,z_controls,'--','Linewidth',2); plot(params.Tapp(:,1),params.Tapp(:,2),'Linewidth',2);
+plot(t_SNOPT,u_SNOPT,'Linewidth',2); 
+plot(params.Tapp(:,1),params.Tapp(:,2),'--','Linewidth',2);
+plot(t_LQR,u_LQR,':','Linewidth',2); 
 title('Control','Interpreter','Latex')
 xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value (Nm)','Interpreter','Latex')
+ylabel('Torque (Nm)','Interpreter','Latex')
 legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
 
-%% LQR
-
-
-Q = 1*eye(nx);
-Q(nx/2+1:end,nx/2+1:end) = 0.1*eye(nx/2);
-
-R = 100*eye(nu);
-F = zeros(size(Q));
-tol = 1e-6;  % Accuracy of ricatti propagation
-
-polys = getPolys(z_states,z_controls,nx,dt,params);
-
-Soln = trajectoryLqr(t,z_states,z_controls,@linSys,Q,R,F,tol,polys,params);
-
-
-ts = t;
-
-Lf = reshape(0.01*eye(nx),nx^2,1);
-myfun = @(t,L) Ldot(t, L, Q, R, ts, z_states, z_controls, polys, params);
-[ts1,Ls1] = ode45(myfun,[T,0], Lf);
-
-size(ts1)
-size(Ls1)
-
-return
-
-
-ts = zeros(size(Soln,2),1);
-Ks = zeros(size(Soln,2),nx);
-
-for ii=1:size(Soln,2)
-    ts(ii) = Soln(ii).t;
-    Ks(ii,:) = Soln(ii).K;
-end
-
-W = waitbar(0,'Solving ODE with LQR'); params.waitBar = W;
-[t_lqr,z_lqr] = ode45(@dynamics,[0,T],x_0,[],ts,Ks,z_states,z_controls, polys, params);
-close(W)
-
-u_lqr = zeros(size(t_lqr));
-
-for ii = 1:size(t_lqr)
-    u_star = interp1(ts,z_controls,t_lqr(ii));
-    w_star = interp1(ts,z_states,t_lqr(ii))';
-    KNow = interp1(ts,Ks,t_lqr(ii));
-    
-    u_lqr(ii) = u_star + KNow*(w_star-z_lqr(ii,:)');
-end
-
-%% Plot the outputs
-
+% Plot cartesian positions
 figure, hold on
-plot(z_states(:,1),z_states(:,2),'--','Linewidth',2)
-plot(z_lqr(:,1),z_lqr(:,2),'Linewidth',2)
-title('Trajectory','Interpreter','Latex')
-xlabel('$x$ (m)','Interpreter','Latex')
-ylabel('$y$ (m)','Interpreter','Latex')
-legend({'SNOPT','ODE45/LQR'},'Interpreter','Latex')
-axis equal
-
-figure, hold on
-plot(t,z_states(:,1),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,1),'Linewidth',2);
-plot(t,z_states(:,2),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,2),'Linewidth',2);
-plot(t,z_states(:,3),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,3),'Linewidth',2); 
-plot(t,z_states(:,4),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,4),'Linewidth',2);
-title('Positions','Interpreter','Latex')
+plot(t_SNOPT,z_SNOPT(:,1),'Linewidth',2);  
+    plot(t_OL, z_OL(:,1),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,1),':','Linewidth',2);
+plot(t_SNOPT,z_SNOPT(:,2),'Linewidth',2);  
+    plot(t_OL, z_OL(:,2),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,2),':','Linewidth',2);
+title('Cartesian Positions','Interpreter','Latex')
 xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value ($m$,$rad$)','Interpreter','Latex')
-legend({'$x_{SNOPT}$','$x_{LQR}$','$y_{SNOPT}$','$y_{LQR}$',...
-            '$\theta_{SNOPT}$','$\theta_{LQR}$','$\phi_{SNOPT}$',...
-            '$\phi_{LQR}$'},'Interpreter','Latex')
-
-figure, hold on
-plot(t,z_states(:,5),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,5),'Linewidth',2);
-plot(t,z_states(:,6),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,6),'Linewidth',2);
-plot(t,z_states(:,7),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,7),'Linewidth',2);
-plot(t,z_states(:,8),'--','Linewidth',2);  plot(t_lqr, z_lqr(:,8),'Linewidth',2);
-title('Velocities','Interpreter','Latex')
-xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value ($\frac{m}{s}$,$\frac{rad}{s}$)','Interpreter','Latex')
-legend({'$\dot{x}_{SNOPT}$','$\dot{x}_{LQR}$','$\dot{y}_{SNOPT}$',...
-            '$\dot{y}_{LQR}$','$\dot{\theta}_{SNOPT}$',...
-            '$\dot{\theta}_{LQR}$','$\dot{\phi}_{SNOPT}$',...
-            '$\dot{\phi}_{LQR}$'},'Interpreter','Latex')
-        
-figure, hold on
-plot(t,z_controls,'--','Linewidth',2); plot(t_lqr,u_lqr,'Linewidth',2);
-title('Control','Interpreter','Latex')
-xlabel('$t$ (s)','Interpreter','Latex')
-ylabel('Value (Nm)','Interpreter','Latex')
-legend({'$\tau_{SNOPT}$','$\tau_{LQR}$'},'Interpreter','Latex')
-
-
-
-
-function [dw] = dynamics(t, w, ts, Ks, z_states, z_controls, polys, params)
+ylabel('Position (m)','Interpreter','Latex')
+legend({'$x_{SNOPT}$','$x_{OL}$','$x_{LQR}$', ...
+        '$y_{SNOPT}$','$y_{OL}$','$y_{LQR}$'},...
+            'Interpreter','Latex','Location','northwest');
     
-%    [w_star,u_star] = getDes(t,ts,z_states,z_controls,polys);
+% Plot angular positions
+figure, hold on
+plot(t_SNOPT,z_SNOPT(:,3),'Linewidth',2);  
+    plot(t_OL, z_OL(:,3),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,3),':','Linewidth',2);
+plot(t_SNOPT,z_SNOPT(:,4),'Linewidth',2);  
+    plot(t_OL, z_OL(:,4),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,4),':','Linewidth',2);
+title('Angular Positions','Interpreter','Latex')
+xlabel('$t$ (s)','Interpreter','Latex')
+ylabel('Angle (rad)','Interpreter','Latex')
+legend({'$\theta_{SNOPT}$','$\theta_{OL}$','$\theta_{LQR}$', ...
+        '$\phi_{SNOPT}$','$\phi_{OL}$','$\phi_{LQR}$'},...
+            'Interpreter','Latex','Location','northeast');
 
-     u_star = interp1(ts,z_controls,t);
-     w_star = interp1(ts,z_states,t)';
+% Plot cartesian velocities
+figure, hold on
+plot(t_SNOPT,z_SNOPT(:,5),'Linewidth',2);  
+    plot(t_OL, z_OL(:,5),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,5),':','Linewidth',2);
+plot(t_SNOPT,z_SNOPT(:,6),'Linewidth',2);  
+    plot(t_OL, z_OL(:,6),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,6),':','Linewidth',2);
+title('Cartesian Velocities','Interpreter','Latex')
+xlabel('$t$ (s)','Interpreter','Latex')
+ylabel('Velocity (m/s)','Interpreter','Latex')
+legend({'$\dot{x}_{SNOPT}$','$\dot{x}_{OL}$','$\dot{x}_{LQR}$', ...
+        '$\dot{y}_{SNOPT}$','$\dot{y}_{OL}$','$\dot{y}_{LQR}$'},...
+            'Interpreter','Latex','Location','northwest');
 
-    KNow = interp1(ts,Ks,t);
-    
-    u = u_star + KNow*(w_star-w);
+% Plot angular velocities
+figure, hold on
+plot(t_SNOPT,z_SNOPT(:,7),'Linewidth',2);  
+    plot(t_OL, z_OL(:,7),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,7),':','Linewidth',2);
+plot(t_SNOPT,z_SNOPT(:,8),'Linewidth',2);  
+    plot(t_OL, z_OL(:,8),'--','Linewidth',2);
+        plot(t_LQR, z_LQR(:,8),':','Linewidth',2);
+title('Angular Velocities','Interpreter','Latex')
+xlabel('$t$ (s)','Interpreter','Latex')
+ylabel('$\omega$ (rad/s)','Interpreter','Latex')
+legend({'$\dot{\theta}_{SNOPT}$','$\dot{\theta}_{OL}$','$\dot{\theta}_{LQR}$', ...
+        '$\dot{\phi}_{SNOPT}$','$\dot{\phi}_{OL}$','$\dot{\phi}_{LQR}$'},...
+            'Interpreter','Latex','Location','northeast');
+
+function [dw] = dynamics(t, w, ts, Ls, z_states, z_controls, R, polys, params)
+
+    [~,u] = findK(t, w, ts, Ls, z_states, z_controls, R, polys, params);
     dw = f(w,u,params);
     
-    waitbar(t/params.maxTime,params.waitBar,'Solving ODE with LQR')
+%     waitbar(t/params.maxTime,params.waitBar,'Solving ODE with LQR')
 
 end
  

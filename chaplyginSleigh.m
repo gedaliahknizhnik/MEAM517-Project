@@ -30,6 +30,6 @@ Tapp = TappVals(ii-1,2) + (dTapp)*(t-TappVals(ii-1,1))/dt;
 %% Calculate dynamics
 dw = f(w,Tapp,params);
 
-waitbar(t/params.maxTime,params.waitBar,'Solving ODE')
+% waitbar(t/params.maxTime,params.waitBar,'Solving ODE')
 
 end
