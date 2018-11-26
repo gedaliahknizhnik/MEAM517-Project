@@ -1,22 +1,19 @@
 function [z,F,INFO] = optimizeChaplygin(params)
-% OPTIMIZECHAPLYGIN(nx, nu, N, dt, params) uses SNOPT to solve the direct
+% OPTIMIZECHAPLYGIN(params) uses SNOPT to solve the direct
 %       collocation problem concerning the Chaplygin Beanie. Modified from
 %       the HW 5 code creat by Mathew Halm.
 % ------------------------------------------------------------------------
 % INPUTS:
-%   nx - the size of the state vector x
-%   nu - the size of the control vector u
-%   N  - the number of segments
-%   dt - the time between segments (constant)
 %   params - a structure of problem parameters (masses, inertias, lengths,
-%   etc.)
+%       etc.) including the initial and final conditions.
+%       The state vector is indicated by w (x, y, th, ph, dx, dy, dth,
+%       dph).
 % OUTPUTS
-%   z - the final state vector (including all xs and us)
+%   z - the final state vector (including all ws and us)
 %   F - the final constraint values
 %   INFO - the output code from SNOPT
 
 %% Define problem settings:
-%
 % Pull values from params
 
 nw   = params.nw;
@@ -30,15 +27,13 @@ N    = params.N;
 dt   = params.dt;
 
 %% Define Constraints
-
 % Add constraints to Aeq, beq to enforce 
 % starting at w_0 and ending at w_f
+
 w_0_inds = 1:nw;
 w_f_inds = w_0_inds + (N - 1) * (nw + nu);
 
 %% Add Constraints on States
-
-%M = Inf;
 
 lb = -inf(N * (nw + nu),1);
 ub =  inf(N * (nw + nu),1);
@@ -101,8 +96,8 @@ snend;
     % passing any gradients.
     
     function [F,dF] = usrfun(z) 
-        [g, dG] = trajectory_cost(z, N, nw, nu, dt);
-        [ceq,dCeq] = all_constraints(z, N, nw, nu, dt, params);       
+        [g, dG] = trajectory_cost(z, params);
+        [ceq,dCeq] = all_constraints(z, params);       
         F = [g; ceq];
     
         % Add the non-zero elements of the cost gradient.
@@ -141,7 +136,7 @@ snend;
         zmul   = []; zstate = [];
 
         % Get sparsity structure 
-        [iii,jjj] = genSparseStructure(nw,nu,N);
+        [iii,jjj] = genSparseStructure(params);
         
         % Constraint structure
         length = 1 + nw*(N-1);

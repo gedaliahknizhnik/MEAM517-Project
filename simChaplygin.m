@@ -83,7 +83,7 @@ end
 
 % Find polynomial trajectories output by SNOPT (currently unused because
 % gives bad outputs for LQR - maybe b/c there's an error in there).
-polys = getPolys(z_SNOPT,u_SNOPT,nw,dt,params);
+polys = getPolys(z_SNOPT,u_SNOPT,params);
 
 % max(F)
 
@@ -135,7 +135,7 @@ LQRfun = @(t,w) dynamics(t,w, t_SNOPT, Lsol, z_SNOPT, u_SNOPT, R, polys, params)
 u_LQR = zeros(size(t_LQR));
 
 for ii = 1:size(t_LQR)
-    [~,u] = findK(t_LQR(ii), z_LQR(ii,:)', t_SNOPT, Lsol, z_SNOPT, u_SNOPT, R, polys, params);
+    [~,u] = findK(t_LQR(ii), z_LQR(ii,:)', t_SNOPT, Lsol, z_SNOPT, u_SNOPT, polys, params);
     u_LQR(ii) = u;
 end
 
@@ -239,7 +239,7 @@ legend({'$\dot{\theta}_{SNOPT}$','$\dot{\theta}_{OL}$','$\dot{\theta}_{LQR}$', .
 % Function for applying LQR control effort to system dynamics.        
 function [dw] = dynamics(t, w, ts, Ls, z_states, z_controls, R, polys, params)
 
-    [~,u] = findK(t, w, ts, Ls, z_states, z_controls, R, polys, params);
+    [~,u] = findK(t, w, ts, Ls, z_states, z_controls, polys, params);
     dw = f(w,u,params);
     
 %     waitbar(t/params.maxTime,params.waitBar,'Solving ODE with LQR')
