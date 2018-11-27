@@ -1,7 +1,7 @@
 function [z,F,INFO] = optimizeChaplygin(params)
 % OPTIMIZECHAPLYGIN(params) uses SNOPT to solve the direct
 %       collocation problem concerning the Chaplygin Beanie. Modified from
-%       the HW 5 code creat by Mathew Halm.
+%       the HW 5 code created by Mathew Halm.
 % ------------------------------------------------------------------------
 % INPUTS:
 %   params - a structure of problem parameters (masses, inertias, lengths,
@@ -12,6 +12,8 @@ function [z,F,INFO] = optimizeChaplygin(params)
 %   z - the final state vector (including all ws and us)
 %   F - the final constraint values
 %   INFO - the output code from SNOPT
+%
+% MODIFIED from MEAM517 HW 5 solution code. Credit to Mat Halm
 
 %% Define problem settings:
 % Pull values from params

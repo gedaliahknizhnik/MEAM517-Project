@@ -24,10 +24,10 @@ M = Inf;
 
 % LQR Costs
 Q = 10*eye(nw);
-R = 0.1*eye(nu);
+R = 1*eye(nu);
 
 % Final Cost-to-Go (must be non-zero b/c current method inverts matrix).
-Lf = 0.01*eye(size(Q));
+Lf = 0.1*eye(size(Q));
 Lf = reshape(Lf,nw^2,1);
 
 % Setup simulation parameters.
@@ -153,6 +153,11 @@ fprintf('Solved the ODE using LQR closed-loop control in      %f seconds.\n',par
 
 close all
 
+xmin = min([z_SNOPT(:,1);z_OL(:,1);z_LQR(:,1)]) - 0.05;
+xmax = max([z_SNOPT(:,1);z_OL(:,1);z_LQR(:,1)]) + 0.05;
+ymin = min([z_SNOPT(:,2);z_OL(:,2);z_LQR(:,2)]) - 0.1;
+ymax = max([z_SNOPT(:,2);z_OL(:,2);z_LQR(:,2)]) + 0.1;
+
 % Plot trajectory
 figure, hold on
 plot(z_SNOPT(:,1),z_SNOPT(:,2),'Linewidth',2)
@@ -162,7 +167,7 @@ title('Trajectory','Interpreter','Latex')
 xlabel('$x$ (m)','Interpreter','Latex')
 ylabel('$y$ (m)','Interpreter','Latex')
 legend({'SNOPT','OL','LQR'},'Interpreter','Latex')
-axis equal
+axis equal, axis([xmin,xmax,ymin,ymax])
 
 % Plot control effort
 figure, hold on
