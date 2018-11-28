@@ -147,20 +147,30 @@ fprintf('Solved the ODE using optimal open-loop control in    %f seconds.\n',par
 fprintf('Solved the Riccati ODE to find the LQR controller in %f seconds.\n',params.tRiccati');
 fprintf('Solved the ODE using LQR closed-loop control in      %f seconds.\n',params.tLQR);
 
+%% Calculate actual polynomial trajectories for SNOPT:
+% Calculate a finer distribution of the SNOPT outputs based on the cubic
+% polynomial assumption so that the graphs are clearer.
+
+t_SNOPT_fine = [0:0.1*dt:T]';
+z_SNOPT_fine = zeros(size(t_SNOPT_fine,1),size(z_SNOPT,2));
+
+for kk = 1:size(t_SNOPT_fine,1)
+    z_SNOPT_fine(kk,:) = getDes(t_SNOPT_fine(kk),t_SNOPT,z_SNOPT,u_SNOPT,polys);
+end
 
 %% Plot the outputs for SNOPT and the plain ODE solution
 % Still no control applied at this point.
 
 close all
 
-xmin = min([z_SNOPT(:,1);z_OL(:,1);z_LQR(:,1)]) - 0.05;
-xmax = max([z_SNOPT(:,1);z_OL(:,1);z_LQR(:,1)]) + 0.05;
-ymin = min([z_SNOPT(:,2);z_OL(:,2);z_LQR(:,2)]) - 0.1;
-ymax = max([z_SNOPT(:,2);z_OL(:,2);z_LQR(:,2)]) + 0.1;
+xmin = min([z_SNOPT_fine(:,1);z_OL(:,1);z_LQR(:,1)]) - 0.05;
+xmax = max([z_SNOPT_fine(:,1);z_OL(:,1);z_LQR(:,1)]) + 0.05;
+ymin = min([z_SNOPT_fine(:,2);z_OL(:,2);z_LQR(:,2)]) - 0.1;
+ymax = max([z_SNOPT_fine(:,2);z_OL(:,2);z_LQR(:,2)]) + 0.1;
 
 % Plot trajectory
 figure, hold on
-plot(z_SNOPT(:,1),z_SNOPT(:,2),'Linewidth',2)
+plot(z_SNOPT_fine(:,1),z_SNOPT_fine(:,2),'Linewidth',2)
     plot(z_OL(:,1),z_OL(:,2),'--','Linewidth',2)
         plot(z_LQR(:,1),z_LQR(:,2),':','Linewidth',2)
 title('Trajectory','Interpreter','Latex')
@@ -177,7 +187,7 @@ plot(t_LQR,u_LQR,':','Linewidth',2);
 title('Control','Interpreter','Latex')
 xlabel('$t$ (s)','Interpreter','Latex')
 ylabel('Torque (Nm)','Interpreter','Latex')
-legend({'$\tau_{SNOPT}$','$\tau_{ODE45}$'},'Interpreter','Latex')
+legend({'$\tau_{SNOPT}$','$\tau_{OL}$','$\tau_{LQR}$'},'Interpreter','Latex')
 
 % Plot cartesian positions
 figure, hold on

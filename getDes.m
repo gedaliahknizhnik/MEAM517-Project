@@ -13,21 +13,19 @@ function [w_star,u_star] = getDes(t,t_stars,w_stars,u_stars,polys)
 %   w_star - the current optimal trajectory point.
 %   u_star - the current optimal control point.
 
-    % If using polynomial trajectories - figure out which polynomial to use and
-    % evaluate it.
-    %     for jj=size(td):-1:2
-    %         if t <= td(jj) 
-    %             ind = jj-1;
-    %             break
-    %         end
-    %     end
-    % 
-    %     dt = t - td(ind);
-    %     dts = [dt^3;dt^2;dt^1;1];
-    %     xdNow = squeeze(polys(ind,:,:))'*dts;
- 
-    % Linearly interpolate in both state and control. (Linearly
-    % interpolating in state is wrong but gives better results...)
-    w_star = interp1(t_stars,w_stars,t)';
+    % Interpolate between states using the cubic splines used by the
+    % optimal trajectory generator.
+    for jj=2:size(t_stars)
+        if t <= t_stars(jj) 
+            ind = jj-1;
+            break
+        end
+    end
+
+    dt = t - t_stars(ind);
+    dts = [dt^3;dt^2;dt^1;1];
+    w_star = squeeze(polys(ind,:,:))'*dts;
+
+    % Linearly interpolate in control. 
     u_star = interp1(t_stars,u_stars,t);
 end
