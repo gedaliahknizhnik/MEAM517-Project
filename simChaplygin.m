@@ -58,6 +58,7 @@ params.Lf      = Lf;
 tic
 [z,F,INFO] = optimizeChaplygin(params);
 params.tSNOPT = toc;
+fprintf('\n\nOptimal Control Problem Solved.\n')
 
 %% Process Output
 % Prepare data for graphing and further use.
@@ -109,6 +110,8 @@ params.Tapp = Tapp;
 [t_OL,z_OL] = ode45(@chaplyginSleigh,[0,T],w_0,[],params);
     params.tODE = toc;
 
+fprintf('Open Loop Dynamics Simulated.\n')
+
 
 %% Find an LQR controller for this optimal trajectory
 % Idea is to minimize trajectory deviation due to dynamic infeasibilities,
@@ -124,6 +127,9 @@ Lsol = ode45(Lfun, [params.maxTime,0], Lf);
     params.tRiccati = toc;
 %close(W)
 
+fprintf('LQR Controller found.\n')
+
+%% Use the LQR Controller for Closed-Loop Dynamics
 % Solve the dynamics with the LQR controller included (should see better
 % performance than simply using the controller from SNOPT).
 LQRfun = @(t,w) dynamics(t,w, t_SNOPT, Lsol, z_SNOPT, u_SNOPT, R, polys, params);
@@ -138,6 +144,9 @@ for ii = 1:size(t_LQR)
     [~,u] = findK(t_LQR(ii), z_LQR(ii,:)', t_SNOPT, Lsol, z_SNOPT, u_SNOPT, polys, params);
     u_LQR(ii) = u;
 end
+
+fprintf('Closed-Loop Dynamics Simulated.\n\n')
+
 
 %% Print Times output
 % 
